@@ -2,11 +2,24 @@
 #define ALGO_GISO_PARTITION_H
 
 #include "stdlib.h"
+#include "stdbool.h"
 
 typedef struct partition {
   int_array_array partition;
   int_array       elements;
 } partition;
+
+partition partition_empty(){
+  partition p;
+  p.partition = int_array_array_empty();
+  p.elements = int_array_empty();
+  return p;
+}
+
+bool partition_is_empty(partition* p){
+  assert(p != NULL);
+  return p->partition.size == 0 && p->elements.size == 0;
+}
 
 partition partition_new(int size){
   partition p;
@@ -32,7 +45,6 @@ void partition_free(partition* p){
   assert(p != NULL);
   int_array_array_free(&p->partition);
   int_array_free(&p->elements);
-  free(p);
 }
 
 void partition_cleanup(partition* p){
@@ -56,6 +68,16 @@ int partition_new_class(partition* p){
   int cls = p->partition.size;
   int_array_array_append(&p->partition, int_array_empty());
   return cls;
+}
+
+void partition_clear_class(partition* p, int cls){
+  assert(p != NULL);
+  assert(cls >= 0 && cls < p->partition.size);
+  for(int i = 0; i < p->partition.array[cls].size; ++i){
+    p->elements.array[p->partition.array[cls].array[i]] = -1;
+  }
+  int_array_free(&p->partition.array[cls]);
+  p->partition.array[cls] = int_array_empty();
 }
 
 void partition_set_class(partition* p, int el, int cls){

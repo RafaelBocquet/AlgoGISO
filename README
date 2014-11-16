@@ -1,0 +1,5 @@
+Convention :
+  If an argument is passed as a non pointer, its ownership is given
+  Otherwise, its owner doesn't change
+
+TODO : const where needed

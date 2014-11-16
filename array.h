@@ -2,6 +2,7 @@
 #define ALGO_GISO_ARRAY_H
 
 #include "stdlib.h"
+#include "assert.h"
 
 // int_array
 
@@ -75,9 +76,21 @@ void int_array_sort(int_array* array, int (*cmp)(int, int)){
 
 void int_array_sort_less(int_array* array){
   int cmp(int a, int b){
-    return b - a;
+    return a - b;
   }
   int_array_sort(array, cmp);
+}
+
+int int_array_compare(int_array* a, int_array* b){
+  assert(a != NULL && b != NULL);
+  for(int i = 0; i < a->size && i < b->size; ++i){
+    if(a->array[i] < b->array[i]){
+      return -1;
+    }else if(a->array[i] > b->array[i]){
+      return 1;
+    }
+  }
+  return b->size - a->size;
 }
 
 // int_array_array
@@ -132,6 +145,17 @@ void int_array_array_append(int_array_array* array, int_array value){
     array->array = a;
     array->bufferSize = nBufferSize;
   }
+}
+
+void int_array_array_sort(int_array_array* array, int (*cmp)(int_array*, int_array*)){
+  int qsort_cmp(const void* a, const void* b){
+    return cmp((int_array*) a, (int_array*) b);
+  };
+  qsort(array->array, array->size, sizeof(int), qsort_cmp);
+}
+
+void int_array_array_sort_less(int_array_array* array){
+  int_array_array_sort(array, int_array_compare);
 }
 
 #endif

@@ -12,20 +12,20 @@
 /*
  * Test if iso is an isomorphism between graphs a and b
  */
-bool test_isomorphism(graph* a, graph* b, int_array* iso){
+bool test_isomorphism(const graph* a, const graph* b, int_array* iso){
   assert(a != NULL);
   assert(b != NULL);
   assert(iso != NULL);
-  assert(a->graphSize == b->graphSize);
-  assert(a->graphSize == iso->size);
+  assert(a->size == b->size);
+  assert(a->size == iso->size);
 
-  for(int i = 0; i < a->graphSize; ++i){
-    if(a->vertices[i].size != b->vertices[iso->array[i]].size){
+  for(int i = 0; i < a->size; ++i){
+    if(a->array[i].size != b->array[iso->array[i]].size){
       return false;
     }
     
-    for(int j = 0; j < a->vertices[i].size; ++j){
-      if(!int_array_binary_search(&b->vertices[iso->array[i]], iso->array[a->vertices[i].array[j]])){
+    for(int j = 0; j < a->array[i].size; ++j){
+      if(!int_array_binary_search(&b->array[iso->array[i]], iso->array[a->array[i].array[j]])){
         return false;
       }
     }
@@ -86,11 +86,11 @@ int_array trivial_isomorphism(int size){
 int_array graph_isomorphism_1(graph* a, graph* b){
   assert(a != NULL);
   assert(b != NULL);
-  if(a->graphSize != b->graphSize){
+  if(a->size != b->size){
     return int_array_empty();
   }
   
-  int_array iso = trivial_isomorphism(a->graphSize);
+  int_array iso = trivial_isomorphism(a->size);
   while(true){
     if(test_isomorphism(a, b, &iso)){
       return iso;
@@ -109,26 +109,29 @@ int_array graph_isomorphism_1(graph* a, graph* b){
 int_array graph_isomorphism_2(graph* a, graph* b){
   assert(a != NULL);
   assert(b != NULL);
-  if(a->graphSize != b->graphSize){
+  if(a->size != b->size){
     return int_array_empty();
   }
 
-  int_array iso = trivial_isomorphism(a->graphSize);
- 
+  int_array iso = trivial_isomorphism(a->size);
+
+  int done = 0;
+
   bool backtrack(int i){
-    if(i == a->graphSize){
+    // printf("%d %d %d\n", i, iso.array[0], a->size);
+    if(i == a->size){
       return true;
     }else{
       /*
        * Remaining vertex in b are vertex iso[i..n-1]
        */
-      for(int j = i; j < a->graphSize; ++j){
+      for(int j = i; j < a->size; ++j){
         SWAP(int, iso.array[i], iso.array[j]);
-        // Need to test vertices from iso[i]
-        if(a->vertices[i].size == b->vertices[iso.array[j]].size){
+        // Need to test array from iso[i]
+        if(a->array[i].size == b->array[iso.array[i]].size){
           bool valid = true;
-          for(int k = 0; k < a->vertices[i].size; ++k){
-            if(a->vertices[i].array[k] <= i && !int_array_binary_search(&b->vertices[iso.array[i]], iso.array[a->vertices[i].array[k]])){
+          for(int k = 0; k < a->array[i].size; ++k){
+            if(a->array[i].array[k] <= i && !int_array_binary_search(&b->array[iso.array[i]], iso.array[a->array[i].array[k]])){
               valid = false;
             }
           }
@@ -158,7 +161,7 @@ int_array graph_isomorphism_partition(graph* a, graph* b, partition* a_part, par
   int_array_array pb = b_part->partition;
   assert(pa.size == pb.size);
   
-  if(a->graphSize != b->graphSize){
+  if(a->size != b->size){
     return int_array_empty();
   }
   for(int i = 0; i < pa.size; ++i){
@@ -167,15 +170,15 @@ int_array graph_isomorphism_partition(graph* a, graph* b, partition* a_part, par
     }
   }
 
-  int_array I = int_array_new(pa.size);
+  int_array I = trivial_isomorphism(pa.size);
   int I_cmp(int a, int b){
-    return pa.array[b].size - pa.array[a].size;
+    return pa.array[a].size - pa.array[b].size;
   }
   int_array_sort(&I, I_cmp);
 
-  int_array iso = trivial_isomorphism(a->graphSize);
-  bool done[a->graphSize];
-  for(int i = 0; i < a->graphSize; ++i){
+  int_array iso = trivial_isomorphism(a->size);
+  bool done[a->size];
+  for(int i = 0; i < a->size; ++i){
     done[i] = false;
   }
         
@@ -194,10 +197,10 @@ int_array graph_isomorphism_partition(graph* a, graph* b, partition* a_part, par
         int aj = pb.array[I.array[i]].array[j];
         iso.array[ai] = aj;
         
-        if(a->vertices[ai].size == b->vertices[aj].size){
+        if(a->array[ai].size == b->array[aj].size){
           bool valid = true;
-          for(int l = 0; l < a->vertices[ai].size; ++l){
-            if(done[a->vertices[ai].array[l]] && !int_array_binary_search(&b->vertices[aj], iso.array[a->vertices[i].array[l]])){
+          for(int l = 0; l < a->array[ai].size; ++l){
+            if(done[a->array[ai].array[l]] && !int_array_binary_search(&b->array[aj], iso.array[a->array[i].array[l]])){
               valid = false;
             }
           }
@@ -223,7 +226,7 @@ int_array graph_isomorphism_partition(graph* a, graph* b, partition* a_part, par
 int_array graph_isomorphism_degree_partition(graph* a, graph* b){
   assert(a != NULL);
   assert(b != NULL);
-  if(a->graphSize != b->graphSize){
+  if(a->size != b->size){
     return int_array_empty();
   }
   partition pa  = graph_degree_partition(a);
@@ -235,19 +238,153 @@ int_array graph_isomorphism_degree_partition(graph* a, graph* b){
 }
 
 /*
- * Not the best stable partition (use of a bloom filter with possible collisions)
+ * Gets the stable partition.
+ * Can be improved with bloom filters instead of signatures (TODO : stable_partition_fast)
  */
 
-void stable_partition(graph* g, partition* p){
-  assert(g != NULL);
+typedef enum refine_partition_result {
+  REFINE_PARTITION_REFINE,
+  REFINE_PARTITION_NOP,
+  REFINE_PARTITION_FAIL
+} refine_partition_result;
+
+refine_partition_result refine_partition(graph* a, graph* b, partition* pa, partition* pb){
+  assert(a != NULL && b != NULL);
+  assert(pa != NULL && pb != NULL);
+  assert(a->size == b->size);
+  assert(pa->elements.size == a->size);
+  assert(pb->elements.size == b->size);
+
+  bool refined = false;
+
+  partition npa = partition_new(a->size);
+  partition npb = partition_new(a->size);
+
+  for(int i = 0; i < pa->partition.size; ++i){
+    assert(pa->partition.array[i].size == pb->partition.array[i].size);
+    
+    if(pa->partition.array[i].size > 0){
+      if(pa->partition.array[i].size == 1){
+        // No refinement possible
+        int cls = partition_new_class(&npa);
+        partition_new_class(&npb);
+        partition_set_class(&npa, pa->partition.array[i].array[0], cls);
+        partition_set_class(&npb, pb->partition.array[i].array[0], cls);
+      }else{
+        // Signatures
+        int_array_array sigsa = int_array_array_new(pa->partition.array[i].size);
+        int_array_array sigsb = int_array_array_new(pa->partition.array[i].size);
+        for(int j = 0; j < pa->partition.array[i].size; ++j){
+          int ai = pa->partition.array[i].array[j];
+          int bi = pb->partition.array[i].array[j];
+          assert(a->array[ai].size == b->array[bi].size);
+          
+          sigsa.array[j] = int_array_new(a->array[ai].size);
+          sigsb.array[j] = int_array_new(b->array[bi].size);
+          for(int k = 0; k < a->array[ai].size; ++k){
+            sigsa.array[j].array[k] = pa->elements.array[a->array[ai].array[k]];
+            sigsb.array[j].array[k] = pb->elements.array[b->array[bi].array[k]];
+          }
+          int_array_sort_less(&sigsa.array[j]);
+          int_array_sort_less(&sigsb.array[j]);
+        }
+
+        // To partition the signatures, while preserving knowledge of which nodes these are the signatures
+        
+        int_array I = trivial_isomorphism(sigsa.size);
+        int I_cmp(int a, int b){
+          return int_array_compare(&sigsa.array[a], &sigsa.array[b]);
+        }
+        int_array_sort(&I, I_cmp);
+        
+        int_array J = trivial_isomorphism(sigsb.size);
+        int J_cmp(int a, int b){
+          return int_array_compare(&sigsb.array[a], &sigsb.array[b]);
+        }
+        int_array_sort(&J, J_cmp);
+
+        // Partition of signatures
+        int j = 0;
+        while(j != sigsa.size){
+          if(int_array_compare(&sigsa.array[I.array[j]], &sigsb.array[J.array[j]]) != 0){
+            return REFINE_PARTITION_FAIL;
+          }
+          int ka = j + 1, kb = j + 1;
+          while(int_array_compare(&sigsa.array[I.array[j]], &sigsa.array[I.array[ka]]) == 0){
+            ka += 1;
+          }
+          while(int_array_compare(&sigsb.array[J.array[j]], &sigsb.array[J.array[kb]]) == 0){
+            kb += 1;
+          }
+          if(ka != kb){
+            return REFINE_PARTITION_FAIL;
+          }
+          int cls = partition_new_class(&npa);
+          partition_new_class(&npb);
+          while(j != ka){
+            partition_set_class(&npa, pa->partition.array[i].array[I.array[j]], cls);
+            partition_set_class(&npb, pb->partition.array[i].array[J.array[j]], cls);
+            j += 1;
+          }
+          if(j != sigsa.size){
+            refined = true;
+          }
+        }
+        int_array_array_free(&sigsa);
+        int_array_array_free(&sigsb);
+        int_array_free(&I);
+        int_array_free(&J);
+      }
+    }
+  }
+
+  if(refined){
+    partition_cleanup(&npa);
+    partition_cleanup(&npb);
+    partition_free(pa);
+    partition_free(pb);
+    *pa = npa;
+    *pb = npb;
+    return REFINE_PARTITION_REFINE;
+  }else{
+    partition_free(&npa);
+    partition_free(&npb);
+    return REFINE_PARTITION_NOP;
+  }
 }
 
-int main(int argc, char** argv){
+bool stable_partition(graph* a, graph* b, partition* pa, partition* pb){
+  assert(a != NULL && b != NULL);
+  assert(pa != NULL && pb != NULL);
+  refine_partition_result r;
+  while((r = refine_partition(a, b, pa, pb)) == REFINE_PARTITION_REFINE){ }
+  return r != REFINE_PARTITION_FAIL;
+}
+
+/* int_array graph_isomorphism_WL(graph* a, graph* b){ */
+/*   assert(a != NULL); */
+/*   assert(b != NULL); */
+/*   if(a->size != b->size){ */
+/*     return int_array_empty(); */
+/*   } */
+/*   partition pa = graph_degree_partition(a); */
+/*   partition pb = graph_degree_partition(b); */
+
+/*   bool backtrack(){ */
+/*     if(!stable_partition(a, b, &pa, &pb)){ */
+/*       partition_free(&pa); */
+/*       partition_free(&pb); */
+/*       return int_array_empty(); */
+/*     } */
+/*   } */
+/* } */
+
+int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   // Entrée
   printf("Read graph 1\n");
-  graph a = graph_read();
+  graph a = graph_read_matrix();
   printf("Read graph 2\n");
-  graph b = graph_read();
+  graph b = graph_read_matrix();
   // Appel de l'algorithme
   int_array iso;
   if((iso = graph_isomorphism_degree_partition(&a, &b)).size != 0){

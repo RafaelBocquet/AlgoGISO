@@ -11,45 +11,59 @@
  * Ces listes d'adjacences sont en fait des tableaux, triés pour pouvoir effectuer des recherches en temps logarithmique
  */
 
-typedef struct graph {
-  int graphSize;
-  int_array *vertices;
-} graph;
+typedef int_array_array graph;
 
 graph graph_read(){
-  graph g;
-  scanf("%d", &g.graphSize);
-  g.vertices = malloc(sizeof(int_array) * g.graphSize);
-  for(int i = 0; i < g.graphSize; ++i){
-    g.vertices[i] = int_array_empty();
-  }
+  int size;
+  scanf("%d", &size);
+  graph g = int_array_array_new(size);
   int m; scanf("%d", &m);
   for(int j = 0; j < m; ++j){
     int a, b; scanf("%d%d", &a, &b);
-    int_array_append(&g.vertices[a], b);
-    int_array_append(&g.vertices[b], a);
+    int_array_append(&g.array[a], b);
+    if(a != b){
+      int_array_append(&g.array[b], a);
+    }
   }
-  for(int i = 0; i < g.graphSize; ++i){
-    int_array_sort_less(&g.vertices[i]);
+  for(int i = 0; i < g.size; ++i){
+    int_array_sort_less(&g.array[i]);
+  }
+  return g;
+}
+
+graph graph_read_matrix(){
+  int size;
+  scanf("%d", &size);
+  graph g = int_array_array_new(size);
+  for(int i = 0; i < size; ++i){
+    for(int j = 0; j < size; ++j){
+      char c = '\n'; while(c == '\n') scanf("%c", &c);
+      if(c == '1'){
+        int_array_append(&g.array[i], j);
+      }
+    }
+  }
+  for(int i = 0; i < g.size; ++i){
+    int_array_sort_less(&g.array[i]);
   }
   return g;
 }
 
 void graph_free(graph* g){
   assert(g != NULL);
-  for(int i = 0; i < g->graphSize; ++i){
-    int_array_free(&g->vertices[i]);
+  for(int i = 0; i < g->size; ++i){
+    int_array_free(&g->array[i]);
   }
-  free(g->vertices);
+  free(g->array);
 }
 
 partition graph_degree_partition(graph* g){
   assert(g != NULL);
-  partition a = partition_new_with_classes(g->graphSize, g->graphSize);
-  for(int i = 0; i < g->graphSize; ++i){
-    partition_set_class(&a, i, g->vertices[i].size);
+  partition a = partition_new_with_classes(g->size, g->size);
+  for(int i = 0; i < g->size; ++i){
+    partition_set_class(&a, i, g->array[i].size);
   }
-  partition_cleanup(&a);
+  //  partition_cleanup(&a);
   return a;
 }
 
