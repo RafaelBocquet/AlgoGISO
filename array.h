@@ -34,6 +34,21 @@ void int_array_free(int_array *array){
   }
 }
 
+int_array int_array_copy(int_array* array){
+  int_array a;
+  a.size = array->size;
+  a.bufferSize = a.size;
+  if(a.size != 0){
+    a.array = malloc(a.size * sizeof(int));
+    for(int i = 0; i < a.size; ++i){
+      a.array[i] = array->array[i];
+    }
+  }else{
+    a.array = NULL;
+  }
+  return a;
+}
+
 void int_array_append(int_array* array, int value){
   if(array->size < array->bufferSize){
     array->array[array->size] = value;
@@ -120,11 +135,26 @@ int_array_array int_array_array_new(int size){
   return a;
 }
 
-void int_array_array_free(int_array_array *array){
+void int_array_array_free(int_array_array* array){
   for(int i = 0; i < array->size; ++i){
     int_array_free(&array->array[i]);
   }
   free(array->array);
+}
+
+int_array_array int_array_array_copy(int_array_array* array){
+  int_array_array a;
+  a.size = array->size;
+  a.bufferSize = a.size;
+  if(a.size != 0){
+    a.array = malloc(a.size * sizeof(int_array));
+    for(int i = 0; i < a.size; ++i){
+      a.array[i] = int_array_copy(&array->array[i]);
+    }
+  }else{
+    a.array = NULL;
+  }
+  return a;
 }
 
 void int_array_array_append(int_array_array* array, int_array value){
@@ -145,6 +175,16 @@ void int_array_array_append(int_array_array* array, int_array value){
     array->array = a;
     array->bufferSize = nBufferSize;
   }
+}
+
+int int_array_back(int_array* array){
+  assert(array->size > 0);
+  return array->array[array->size - 1];
+}
+
+void int_array_remove_back(int_array* array){
+  assert(array->size > 0);
+  array->size -= 1;
 }
 
 void int_array_array_sort(int_array_array* array, int (*cmp)(int_array*, int_array*)){

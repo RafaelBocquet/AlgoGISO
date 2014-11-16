@@ -115,8 +115,6 @@ int_array graph_isomorphism_2(graph* a, graph* b){
 
   int_array iso = trivial_isomorphism(a->size);
 
-  int done = 0;
-
   bool backtrack(int i){
     // printf("%d %d %d\n", i, iso.array[0], a->size);
     if(i == a->size){
@@ -261,7 +259,10 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
   partition npb = partition_new(a->size);
 
   for(int i = 0; i < pa->partition.size; ++i){
-    assert(pa->partition.array[i].size == pb->partition.array[i].size);
+    // TODO : check this condition
+    if(pa->partition.array[i].size != pb->partition.array[i].size){
+      return REFINE_PARTITION_FAIL;
+    }
     
     if(pa->partition.array[i].size > 0){
       if(pa->partition.array[i].size == 1){
@@ -310,10 +311,10 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
             return REFINE_PARTITION_FAIL;
           }
           int ka = j + 1, kb = j + 1;
-          while(int_array_compare(&sigsa.array[I.array[j]], &sigsa.array[I.array[ka]]) == 0){
+          while(ka < sigsa.size && int_array_compare(&sigsa.array[I.array[j]], &sigsa.array[I.array[ka]]) == 0){
             ka += 1;
           }
-          while(int_array_compare(&sigsb.array[J.array[j]], &sigsb.array[J.array[kb]]) == 0){
+          while(kb < sigsa.size && int_array_compare(&sigsb.array[J.array[j]], &sigsb.array[J.array[kb]]) == 0){
             kb += 1;
           }
           if(ka != kb){
@@ -361,23 +362,74 @@ bool stable_partition(graph* a, graph* b, partition* pa, partition* pb){
   return r != REFINE_PARTITION_FAIL;
 }
 
-/* int_array graph_isomorphism_WL(graph* a, graph* b){ */
-/*   assert(a != NULL); */
-/*   assert(b != NULL); */
-/*   if(a->size != b->size){ */
-/*     return int_array_empty(); */
-/*   } */
-/*   partition pa = graph_degree_partition(a); */
-/*   partition pb = graph_degree_partition(b); */
+int_array graph_isomorphism_WL(graph* a, graph* b){
+  assert(a != NULL);
+  assert(b != NULL);
+  if(a->size != b->size){
+    return int_array_empty();
+  }
+  
+  bool backtrack(partition* pa, partition* pb, int depth){
+    printf("Backtrack depth %d\n", depth);
+    if(!stable_partition(a, b, pa, pb)){
+      return false;
+    }
+    // remove empty classes. Keeps the ordering of classes in pa and pb -> valid
+    partition_cleanup(pa);
+    partition_cleanup(pb);
 
-/*   bool backtrack(){ */
-/*     if(!stable_partition(a, b, &pa, &pb)){ */
-/*       partition_free(&pa); */
-/*       partition_free(&pb); */
-/*       return int_array_empty(); */
-/*     } */
-/*   } */
-/* } */
+    // TODO : better choice of i
+    int i = 0;
+    while(i < a->size && pa->partition.array[i].size == 1){
+      i += 1;
+    }
+    // 1 element / class : isomorphism
+    if(i == a->size){
+      return true;
+    }
+    
+    for(int j = 0; j < pb->partition.array[i].size; ++j){
+      partition opa = partition_copy(pa);
+      partition opb = partition_copy(pb);
+      int cls = partition_new_class(&opa);
+      partition_new_class(&opb);
+      int ai = int_array_back(&opa.partition.array[i]);
+      int_array_remove_back(&opa.partition.array[i]);
+      int aj = opb.partition.array[i].array[j];
+      opb.partition.array[i].array[j] = int_array_back(&opb.partition.array[i]);
+      int_array_remove_back(&opb.partition.array[i]);
+      partition_set_class(&opa, ai, cls);
+      partition_set_class(&opb, aj, cls);
+      if(backtrack(&opa, &opb, depth+1)){
+        SWAP(partition, opa, *pa);
+        SWAP(partition, opb, *pb);
+        partition_free(&opa);
+        partition_free(&opb);
+        return true;
+      }else{
+        partition_free(&opa);
+        partition_free(&opb);
+      }
+    }
+
+    return false;
+  }
+
+  partition pa = graph_degree_partition(a);
+  partition pb = graph_degree_partition(b);
+
+  if(backtrack(&pa, &pb, 0)){
+    partition_cleanup(&pa);
+    partition_cleanup(&pb);
+    int_array iso = int_array_new(a->size);
+    for(int i = 0; i < a->size; ++i){
+      iso.array[pa.partition.array[i].array[0]] = pb.partition.array[i].array[0];
+    }
+    return iso;
+  }else{
+    return int_array_empty();
+  }
+}
 
 int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   // Entrée
@@ -387,7 +439,7 @@ int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   graph b = graph_read_matrix();
   // Appel de l'algorithme
   int_array iso;
-  if((iso = graph_isomorphism_degree_partition(&a, &b)).size != 0){
+  if((iso = graph_isomorphism_WL(&a, &b)).size != 0){
     printf("oui\n");
     int_array_free(&iso);
   }else{

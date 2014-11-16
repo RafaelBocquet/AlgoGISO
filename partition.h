@@ -47,6 +47,13 @@ void partition_free(partition* p){
   int_array_free(&p->elements);
 }
 
+partition partition_copy(partition* p){
+  partition q;
+  q.partition = int_array_array_copy(&p->partition);
+  q.elements  = int_array_copy(&p->elements);
+  return q;
+}
+
 void partition_cleanup(partition* p){
   assert(p != NULL);
   int_array_array npartition = int_array_array_empty();
