@@ -290,31 +290,46 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
           int_array_sort_less(&sigsb.array[j]);
         }
 
+        int_array hasha = int_array_new(sigsa.size);
+        for(int i = 0; i < sigsa.size; ++i){
+          hasha.array[i] = 0;
+          for(int j = 0; j < sigsa.array[i].size; ++j){
+            hasha.array[i] = hash_combine(hasha.array[i], sigsa.array[i].array[j]);
+          }
+        }
+        int_array hashb = int_array_new(sigsb.size);
+        for(int i = 0; i < sigsb.size; ++i){
+          hashb.array[i] = 0;
+          for(int j = 0; j < sigsb.array[i].size; ++j){
+            hashb.array[i] = hash_combine(hashb.array[i], sigsb.array[i].array[j]);
+          }
+        }
+
         // To partition the signatures, while preserving knowledge of which nodes these are the signatures
         
         int_array I = trivial_isomorphism(sigsa.size);
         int I_cmp(int a, int b){
-          return int_array_compare(&sigsa.array[a], &sigsa.array[b]);
+          return hasha.array[b] - hasha.array[a];
         }
         int_array_sort(&I, I_cmp);
         
         int_array J = trivial_isomorphism(sigsb.size);
         int J_cmp(int a, int b){
-          return int_array_compare(&sigsb.array[a], &sigsb.array[b]);
+          return hashb.array[b] - hashb.array[a];
         }
         int_array_sort(&J, J_cmp);
 
         // Partition of signatures
         int j = 0;
-        while(j != sigsa.size){
-          if(int_array_compare(&sigsa.array[I.array[j]], &sigsb.array[J.array[j]]) != 0){
+        while(j != hasha.size){
+          if(hasha.array[I.array[j]] != hashb.array[J.array[j]]){
             return REFINE_PARTITION_FAIL;
           }
           int ka = j + 1, kb = j + 1;
-          while(ka < sigsa.size && int_array_compare(&sigsa.array[I.array[j]], &sigsa.array[I.array[ka]]) == 0){
+          while(ka < hasha.size && hasha.array[I.array[j]] == hasha.array[I.array[ka]]){
             ka += 1;
           }
-          while(kb < sigsa.size && int_array_compare(&sigsb.array[J.array[j]], &sigsb.array[J.array[kb]]) == 0){
+          while(kb < hashb.size && hashb.array[J.array[j]] == hashb.array[J.array[kb]]){
             kb += 1;
           }
           if(ka != kb){
@@ -327,12 +342,14 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
             partition_set_class(&npb, pb->partition.array[i].array[J.array[j]], cls);
             j += 1;
           }
-          if(j != sigsa.size){
+          if(j != hasha.size){
             refined = true;
           }
         }
         int_array_array_free(&sigsa);
         int_array_array_free(&sigsb);
+        int_array_free(&hasha);
+        int_array_free(&hashb);
         int_array_free(&I);
         int_array_free(&J);
       }
@@ -440,8 +457,11 @@ int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   // Appel de l'algorithme
   int_array iso;
   if((iso = graph_isomorphism_WL(&a, &b)).size != 0){
-    assert(test_isomorphism(&a, &b, &iso));
     printf("oui\n");
+    for(int i = 0; i < a.size; ++i){
+      printf("%d ", iso.array[i]);
+    } printf("\n");
+    assert(test_isomorphism(&a, &b, &iso));
     int_array_free(&iso);
   }else{
     printf("non\n");

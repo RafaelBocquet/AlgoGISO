@@ -8,7 +8,7 @@
     b = tmp;                                      \
   }
 
-int hash_combine(int seed, int value){
+size_t hash_combine(size_t seed, size_t value){
   return seed ^ (value + 0x9E3779B9 + (seed<<6) + (seed>>2));
 }
 
