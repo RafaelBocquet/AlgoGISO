@@ -370,7 +370,7 @@ int_array graph_isomorphism_WL(graph* a, graph* b){
   }
   
   bool backtrack(partition* pa, partition* pb, int depth){
-    printf("Backtrack depth %d\n", depth);
+    // printf("Backtrack depth %d\n", depth);
     if(!stable_partition(a, b, pa, pb)){
       return false;
     }
@@ -440,6 +440,7 @@ int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   // Appel de l'algorithme
   int_array iso;
   if((iso = graph_isomorphism_WL(&a, &b)).size != 0){
+    assert(test_isomorphism(&a, &b, &iso));
     printf("oui\n");
     int_array_free(&iso);
   }else{
