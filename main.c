@@ -289,9 +289,7 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         for(int j = 0; j < b->array[bi].size; ++j){
           sigb.array[j] = pb->elements.array[b->array[bi].array[j]];
         }
-        int_array_sort_less_bounded(&siga, &tmp_bounded);
-        int_array_sort_less_bounded(&sigb, &tmp_bounded);
-        if(int_array_compare(&siga, &sigb) != 0){
+        if(!int_array_unsorted_compare_bounded(&siga, &sigb, &tmp_bounded)){
           local_free();
           return REFINE_PARTITION_FAIL;
         }
@@ -317,15 +315,14 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
             sigsa.array[j].array[k] = pa->elements.array[a->array[ai].array[k]];
             sigsb.array[j].array[k] = pb->elements.array[b->array[bi].array[k]];
           }
-          // int_array_sort_less(&sigsa.array[j]);
-          // int_array_sort_less(&sigsb.array[j]);
         }
 
         int f(int a){
-          return (a << 2) * a;
+          return a * a;
         }
         int_array hasha = int_array_new(sigsa.size);
         for(int i = 0; i < sigsa.size; ++i){
+          /* hasha.array[i] = int_array_hash_bounded(&sigsa.array[i], &tmp_bounded); */
           hasha.array[i] = 0;
           for(int j = 0; j < sigsa.array[i].size; ++j){
             hasha.array[i] = hasha.array[i] + f(sigsa.array[i].array[j]);
@@ -333,6 +330,7 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         }
         int_array hashb = int_array_new(sigsb.size);
         for(int i = 0; i < sigsb.size; ++i){
+          /* hashb.array[i] = int_array_hash_bounded(&sigsb.array[i], &tmp_bounded); */
           hashb.array[i] = 0;
           for(int j = 0; j < sigsb.array[i].size; ++j){
             hashb.array[i] = hashb.array[i] + f(sigsb.array[i].array[j]);
@@ -362,12 +360,14 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
           int_array_free(&J);
           partition_free(&npa);
           partition_free(&npb);
+          int_array_free(&tmp_bounded);
         }
 
         // Partition of signatures
         int j = 0;
         while(j != sigsa.size){
           if(hasha.array[I.array[j]] != hashb.array[J.array[j]]){
+            local_free();
             return REFINE_PARTITION_FAIL;
           }
           int ka = j + 1, kb = j + 1;
@@ -378,6 +378,7 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
             kb += 1;
           }
           if(ka != kb){
+            local_free();
             return REFINE_PARTITION_FAIL;
           }
           int cls = partition_new_class(&npa);
@@ -407,6 +408,7 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
     partition_cleanup(&npb);
     partition_free(pa);
     partition_free(pb);
+    int_array_free(&tmp_bounded);
     *pa = npa;
     *pb = npb;
     return REFINE_PARTITION_REFINE;

@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdlib.h"
 #include "assert.h"
+#include "util.h"
 
 // int_array
 
@@ -100,6 +101,7 @@ void int_array_sort_less(int_array* array){
 void int_array_sort_less_bounded(int_array* array, int_array* tmp){
   memset(tmp->array, 0, tmp->size * sizeof(int));
   for(int i = 0; i < array->size; ++i){
+    assert(array->array[i] < tmp->size);
     tmp->array[array->array[i]] += 1;
   }
   int cur = 0;
@@ -109,6 +111,37 @@ void int_array_sort_less_bounded(int_array* array, int_array* tmp){
       cur += 1;
     }
   }
+}
+
+bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* tmp){
+  memset(tmp->array, 0, tmp->size * sizeof(int));
+  for(int i = 0; i < a->size; ++i){
+    assert(a->array[i] < tmp->size);
+    assert(b->array[i] < tmp->size);
+    tmp->array[a->array[i]] += 1;
+    tmp->array[b->array[i]] -= 1;
+  }
+  for(int i = 0; i < tmp->size; ++i){
+    if(tmp->array[i] != 0){
+      return false;
+    }
+  }
+  return true;
+}
+
+int int_array_hash_bounded(int_array* a, int_array* tmp){
+  memset(tmp->array, 0, tmp->size * sizeof(int));
+  for(int i = 0; i < a->size; ++i){
+    assert(a->array[i] < tmp->size);
+    tmp->array[a->array[i]] += 1;
+  }
+  int h = 0;
+  for(int i = 0; i < tmp->size; ++i){
+    if(tmp->array[i] != 0){
+      h = hash_combine(hash_combine(h, i), tmp->array[i]);
+    }
+  }
+  return h;
 }
 
 int int_array_compare(int_array* a, int_array* b){
