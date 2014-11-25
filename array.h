@@ -1,6 +1,7 @@
 #ifndef ALGO_GISO_ARRAY_H
 #define ALGO_GISO_ARRAY_H
 
+#include "string.h"
 #include "stdlib.h"
 #include "assert.h"
 
@@ -94,6 +95,20 @@ void int_array_sort_less(int_array* array){
     return a - b;
   }
   int_array_sort(array, cmp);
+}
+
+void int_array_sort_less_bounded(int_array* array, int_array* tmp){
+  memset(tmp->array, 0, tmp->size * sizeof(int));
+  for(int i = 0; i < array->size; ++i){
+    tmp->array[array->array[i]] += 1;
+  }
+  int cur = 0;
+  for(int i = 0; i < tmp->size; ++i){
+    for(int j = 0; j < tmp->array[i]; ++j){
+      array->array[cur] = i;
+      cur += 1;
+    }
+  }
 }
 
 int int_array_compare(int_array* a, int_array* b){

@@ -258,13 +258,15 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
   partition npa = partition_new(a->size);
   partition npb = partition_new(b->size);
 
+  int_array tmp_bounded = int_array_new(a->size);
+
   void local_free(){
     partition_free(&npa);
     partition_free(&npb);
+    int_array_free(&tmp_bounded);
   }
 
   for(int i = 0; i < pa->partition.size; ++i){
-    // TODO : check this condition
     if(pa->partition.array[i].size != pb->partition.array[i].size){
       local_free();
       return REFINE_PARTITION_FAIL;
@@ -287,8 +289,8 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         for(int j = 0; j < b->array[bi].size; ++j){
           sigb.array[j] = pb->elements.array[b->array[bi].array[j]];
         }
-        int_array_sort_less(&siga);
-        int_array_sort_less(&sigb);
+        int_array_sort_less_bounded(&siga, &tmp_bounded);
+        int_array_sort_less_bounded(&sigb, &tmp_bounded);
         if(int_array_compare(&siga, &sigb) != 0){
           local_free();
           return REFINE_PARTITION_FAIL;
@@ -315,22 +317,25 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
             sigsa.array[j].array[k] = pa->elements.array[a->array[ai].array[k]];
             sigsb.array[j].array[k] = pb->elements.array[b->array[bi].array[k]];
           }
-          int_array_sort_less(&sigsa.array[j]);
-          int_array_sort_less(&sigsb.array[j]);
+          // int_array_sort_less(&sigsa.array[j]);
+          // int_array_sort_less(&sigsb.array[j]);
         }
 
+        int f(int a){
+          return (a << 2) * a;
+        }
         int_array hasha = int_array_new(sigsa.size);
         for(int i = 0; i < sigsa.size; ++i){
           hasha.array[i] = 0;
           for(int j = 0; j < sigsa.array[i].size; ++j){
-            hasha.array[i] = hash_combine(hasha.array[i], sigsa.array[i].array[j]);
+            hasha.array[i] = hasha.array[i] + f(sigsa.array[i].array[j]);
           }
         }
         int_array hashb = int_array_new(sigsb.size);
         for(int i = 0; i < sigsb.size; ++i){
           hashb.array[i] = 0;
           for(int j = 0; j < sigsb.array[i].size; ++j){
-            hashb.array[i] = hash_combine(hashb.array[i], sigsb.array[i].array[j]);
+            hashb.array[i] = hashb.array[i] + f(sigsb.array[i].array[j]);
           }
         }
 
@@ -428,9 +433,6 @@ int_array graph_isomorphism_WL(graph* a, graph* b){
   
   bool backtrack(partition* pa, partition* pb, int depth){
     //printf("Backtrack depth %d\n", depth);
-    /* if(!suitable_partition(a, b, pa, pb)){ */
-    /*   return false; */
-    /* } */
     if(!stable_partition(a, b, pa, pb)){
       return false;
     }
