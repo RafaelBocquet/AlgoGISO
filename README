@@ -3,3 +3,4 @@ Convention :
   Otherwise, its owner doesn't change
 
 TODO : const where needed
+TODO : pick best between O(n + m) and O (n log n) sorts

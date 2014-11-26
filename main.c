@@ -3,6 +3,8 @@
 #include "stdbool.h"
 #include "math.h"
 #include "assert.h"
+#include "inttypes.h"
+#include "time.h"
 
 #include "array.h"
 #include "util.h"
@@ -54,7 +56,7 @@ bool next_isomorphism(int_array* iso){
     l -= 1;
   }
 
-  SWAP(int, iso->array[k], iso->array[k]);
+  SWAP(int, iso->array[k], iso->array[l]);
 
   k += 1;
   l = iso->size - 1;
@@ -65,14 +67,6 @@ bool next_isomorphism(int_array* iso){
   }
 
   return true;
-}
-
-int_array trivial_isomorphism(int size){
-  int_array iso = int_array_new(size);
-  for(int i = 0; i < size; ++i){
-    iso.array[i] = i;
-  }
-  return iso;
 }
 
 /*
@@ -118,7 +112,7 @@ int_array graph_isomorphism_2(graph* a, graph* b){
   bool backtrack(int i){
     // printf("%d %d %d\n", i, iso.array[0], a->size);
     if(i == a->size){
-      return true;
+      return test_isomorphism(a, b, &iso);
     }else{
       /*
        * Remaining vertex in b are vertex iso[i..n-1]
@@ -137,6 +131,8 @@ int_array graph_isomorphism_2(graph* a, graph* b){
             return true;
           }
         }
+
+        SWAP(int, iso.array[i], iso.array[j]);
       }
       return false;
     }
@@ -206,6 +202,8 @@ int_array graph_isomorphism_partition(graph* a, graph* b, partition* a_part, par
             return true;
           }
         }
+        
+        SWAP(int, pb.array[I.array[i]].array[j], pb.array[I.array[i]].array[k]);
       }
       
       done[ai] = false;
@@ -246,8 +244,9 @@ typedef enum refine_partition_result {
   REFINE_PARTITION_FAIL
 } refine_partition_result;
 
-refine_partition_result refine_partition(graph* a, graph* b, partition* pa, partition* pb){
+refine_partition_result refine_partition(graph* a, graph* b, graph* ra, graph* rb, partition* pa, partition* pb){
   assert(a != NULL && b != NULL);
+  assert(ra != NULL && rb != NULL);
   assert(pa != NULL && pb != NULL);
   assert(a->size == b->size);
   assert(pa->elements.size == a->size);
@@ -266,6 +265,14 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
     int_array_free(&tmp_bounded);
   }
 
+  int_array signature(graph* g, partition* p, int i){
+    int_array sig = int_array_new(g->array[i].size);
+    for(int j = 0; j < g->array[i].size; ++j){
+      sig.array[j] = p->elements.array[g->array[i].array[j]];
+    }
+    return sig;
+  }
+
   for(int i = 0; i < pa->partition.size; ++i){
     if(pa->partition.array[i].size != pb->partition.array[i].size){
       local_free();
@@ -277,24 +284,28 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         // No refinement possible, still check if the partition is valid !
         int ai = pa->partition.array[i].array[0];
         int bi = pb->partition.array[i].array[0];
-        if(a->array[ai].size != b->array[bi].size){
+        if(a->array[ai].size != b->array[bi].size
+           || ra->array[ai].size != rb->array[bi].size){
           local_free();
           return REFINE_PARTITION_FAIL;
         }
-        int_array siga = int_array_new(a->array[ai].size);
-        int_array sigb = int_array_new(b->array[bi].size);
-        for(int j = 0; j < a->array[ai].size; ++j){
-          siga.array[j] = pa->elements.array[a->array[ai].array[j]];
-        }
-        for(int j = 0; j < b->array[bi].size; ++j){
-          sigb.array[j] = pb->elements.array[b->array[bi].array[j]];
-        }
-        if(!int_array_unsorted_compare_bounded(&siga, &sigb, &tmp_bounded)){
+        int_array siga = signature(a, pa, ai);
+        int_array sigb = signature(b, pb, bi);
+        int_array sigra = signature(ra, pa, ai);
+        int_array sigrb = signature(rb, pb, bi);
+        if(!int_array_unsorted_compare_bounded(&siga, &sigb, &tmp_bounded)
+           || !int_array_unsorted_compare_bounded(&sigra, &sigrb, &tmp_bounded)){
           local_free();
+          int_array_free(&siga);
+          int_array_free(&sigb);
+          int_array_free(&sigra);
+          int_array_free(&sigrb);
           return REFINE_PARTITION_FAIL;
         }
         int_array_free(&siga);
         int_array_free(&sigb);
+        int_array_free(&sigra);
+        int_array_free(&sigrb);
         // Partition is valid from this node
         int cls = partition_new_class(&npa);
         partition_new_class(&npb);
@@ -304,58 +315,57 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         // Signatures
         int_array_array sigsa = int_array_array_new(pa->partition.array[i].size);
         int_array_array sigsb = int_array_array_new(pb->partition.array[i].size);
+        int_array_array sigsra = int_array_array_new(pa->partition.array[i].size);
+        int_array_array sigsrb = int_array_array_new(pb->partition.array[i].size);
         for(int j = 0; j < pa->partition.array[i].size; ++j){
           int ai = pa->partition.array[i].array[j];
           int bi = pb->partition.array[i].array[j];
-          assert(a->array[ai].size == b->array[bi].size);
+          assert(a->array[ai].size == b->array[bi].size); // because init with degree_partition
           
-          sigsa.array[j] = int_array_new(a->array[ai].size);
-          sigsb.array[j] = int_array_new(b->array[bi].size);
-          for(int k = 0; k < a->array[ai].size; ++k){
-            sigsa.array[j].array[k] = pa->elements.array[a->array[ai].array[k]];
-            sigsb.array[j].array[k] = pb->elements.array[b->array[bi].array[k]];
-          }
+          sigsa.array[j]  = signature(a, pa, ai);
+          sigsb.array[j]  = signature(b, pb, bi);
+          sigsra.array[j] = signature(ra, pa, ai);
+          sigsrb.array[j] = signature(rb, pb, bi);
         }
 
-        int f(int a){
-          return a * a;
-        }
         int_array hasha = int_array_new(sigsa.size);
         for(int i = 0; i < sigsa.size; ++i){
-          /* hasha.array[i] = int_array_hash_bounded(&sigsa.array[i], &tmp_bounded); */
-          hasha.array[i] = 0;
-          for(int j = 0; j < sigsa.array[i].size; ++j){
-            hasha.array[i] = hasha.array[i] + f(sigsa.array[i].array[j]);
-          }
+          hasha.array[i] = int_array_hash_bounded(&sigsa.array[i], &tmp_bounded) ^ int_array_hash_bounded(&sigsra.array[i], &tmp_bounded);
+          /* hasha.array[i] = 0; */
+          /* for(int j = 0; j < sigsa.array[i].size; ++j){ */
+          /*   hasha.array[i] = hasha.array[i] + f(sigsa.array[i].array[j]); */
+          /* } */
         }
         int_array hashb = int_array_new(sigsb.size);
         for(int i = 0; i < sigsb.size; ++i){
-          /* hashb.array[i] = int_array_hash_bounded(&sigsb.array[i], &tmp_bounded); */
-          hashb.array[i] = 0;
-          for(int j = 0; j < sigsb.array[i].size; ++j){
-            hashb.array[i] = hashb.array[i] + f(sigsb.array[i].array[j]);
-          }
+          hashb.array[i] = int_array_hash_bounded(&sigsb.array[i], &tmp_bounded) ^ int_array_hash_bounded(&sigsrb.array[i], &tmp_bounded);
+          /* hashb.array[i] = 0; */
+          /* for(int j = 0; j < sigsb.array[i].size; ++j){ */
+          /*   hashb.array[i] = hashb.array[i] + f(sigsb.array[i].array[j]); */
+          /* } */
         }
 
         // To partition the signatures, while preserving knowledge of which nodes these are the signatures
         
         int_array I = trivial_isomorphism(sigsa.size);
         int I_cmp(int a, int b){
-          return hasha.array[b] - hasha.array[a];
+          return int_compare(hasha.array[a], hasha.array[b]);
         }
         int_array_sort(&I, I_cmp);
         
         int_array J = trivial_isomorphism(sigsb.size);
         int J_cmp(int a, int b){
-          return hashb.array[b] - hashb.array[a];
+          return int_compare(hashb.array[a], hashb.array[b]);
         }
         int_array_sort(&J, J_cmp);
-
+        
         void local_free(){
           int_array_free(&hasha);
           int_array_free(&hashb);
           int_array_array_free(&sigsa);
           int_array_array_free(&sigsb);
+          int_array_array_free(&sigsra);
+          int_array_array_free(&sigsrb);
           int_array_free(&I);
           int_array_free(&J);
           partition_free(&npa);
@@ -397,6 +407,8 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
         int_array_free(&hashb);
         int_array_array_free(&sigsa);
         int_array_array_free(&sigsb);
+        int_array_array_free(&sigsra);
+        int_array_array_free(&sigsrb);
         int_array_free(&I);
         int_array_free(&J);
       }
@@ -418,11 +430,11 @@ refine_partition_result refine_partition(graph* a, graph* b, partition* pa, part
   }
 }
 
-bool stable_partition(graph* a, graph* b, partition* pa, partition* pb){
+bool stable_partition(graph* a, graph* b, graph* ra, graph* rb, partition* pa, partition* pb){
   assert(a != NULL && b != NULL);
   assert(pa != NULL && pb != NULL);
   refine_partition_result r;
-  while((r = refine_partition(a, b, pa, pb)) == REFINE_PARTITION_REFINE){ }
+  while((r = refine_partition(a, b, ra, rb, pa, pb)) == REFINE_PARTITION_REFINE){ }
   return r != REFINE_PARTITION_FAIL;
 }
 
@@ -432,10 +444,13 @@ int_array graph_isomorphism_WL(graph* a, graph* b){
   if(a->size != b->size){
     return int_array_empty();
   }
+
+  graph ra = graph_reverse(a);
+  graph rb = graph_reverse(b);
   
   bool backtrack(partition* pa, partition* pb, int depth){
-    //printf("Backtrack depth %d\n", depth);
-    if(!stable_partition(a, b, pa, pb)){
+    printf("Backtrack depth %d\n", depth);
+    if(!stable_partition(a, b, &ra, &rb, pa, pb)){
       return false;
     }
     // remove empty classes. Keeps the ordering of classes in pa and pb -> valid
@@ -487,6 +502,13 @@ int_array graph_isomorphism_WL(graph* a, graph* b){
 
   partition pa = graph_degree_partition(a);
   partition pb = graph_degree_partition(b);
+  
+  void local_free(){
+    partition_free(&pa);
+    partition_free(&pb);
+    graph_free(&ra);
+    graph_free(&rb);
+  }
 
   if(backtrack(&pa, &pb, 0)){
     partition_cleanup(&pa);
@@ -495,18 +517,29 @@ int_array graph_isomorphism_WL(graph* a, graph* b){
     for(int i = 0; i < a->size; ++i){
       iso.array[pa.partition.array[i].array[0]] = pb.partition.array[i].array[0];
     }
+    local_free();
     return iso;
   }else{
+    local_free();
     return int_array_empty();
   }
 }
 
 int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
+  srand(time(NULL));
   // Entrée
-  printf("Read graph 1\n");
-  graph a = graph_read_matrix();
-  printf("Read graph 2\n");
-  graph b = graph_read_matrix();
+  /* printf("Read graph 1\n"); */
+  /* graph a = graph_read(); */
+  /* printf("Read graph 2\n"); */
+  /* graph b = graph_read(); */
+  int sz; scanf("%d", &sz);
+  graph a = graph_random(sz, sz);
+  int_array in_iso = random_isomorphism(sz);
+    for(int i = 0; i < a.size; ++i){
+      printf("%d ", in_iso.array[i]);
+    } printf("\n");
+  graph b = graph_apply_isomorphism(&a, &in_iso);
+  int_array_free(&in_iso);
   // Appel de l'algorithme
   int_array iso;
   if((iso = graph_isomorphism_WL(&a, &b)).size != 0){

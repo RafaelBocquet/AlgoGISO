@@ -8,10 +8,11 @@
     b = tmp;                                      \
   }
 
-const int ha = 1e9+7;
-const int hc = 1e9+103;
+int int_compare(int a, int b){
+  return (a < b) ? -1 : (b < a);
+}
 
-int hash_combine(int seed, int value){
+unsigned hash_combine(unsigned seed, unsigned value){
   return seed ^ (value + 0x9e3779b9 + (seed<<6) + (seed>>2));
 }
 

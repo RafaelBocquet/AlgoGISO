@@ -72,6 +72,10 @@ void int_array_append(int_array* array, int value){
 }
 
 bool int_array_binary_search(int_array* array, int value){
+  assert(array != NULL);
+  if(array->size == 0){
+    return false;
+  }
   int lo = 0, hi = array->size-1;
   while(lo != hi){
     int mid = (lo + hi) / 2;
@@ -86,16 +90,15 @@ bool int_array_binary_search(int_array* array, int value){
 
 void int_array_sort(int_array* array, int (*cmp)(int, int)){
   int qsort_cmp(const void* a, const void* b){
-    return cmp(* (int*) a, * (int*) b);
+    int const* pa = a;
+    int const* pb = b;
+    return cmp(*pa, *pb);
   };
   qsort(array->array, array->size, sizeof(int), qsort_cmp);
 }
 
 void int_array_sort_less(int_array* array){
-  int cmp(int a, int b){
-    return a - b;
-  }
-  int_array_sort(array, cmp);
+  int_array_sort(array, int_compare);
 }
 
 void int_array_sort_less_bounded(int_array* array, int_array* tmp){
@@ -114,6 +117,8 @@ void int_array_sort_less_bounded(int_array* array, int_array* tmp){
 }
 
 bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* tmp){
+  assert(a != NULL && b != NULL);
+  assert(a->size == b->size);
   memset(tmp->array, 0, tmp->size * sizeof(int));
   for(int i = 0; i < a->size; ++i){
     assert(a->array[i] < tmp->size);
@@ -129,16 +134,16 @@ bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* t
   return true;
 }
 
-int int_array_hash_bounded(int_array* a, int_array* tmp){
+unsigned int_array_hash_bounded(int_array* a, int_array* tmp){
   memset(tmp->array, 0, tmp->size * sizeof(int));
   for(int i = 0; i < a->size; ++i){
     assert(a->array[i] < tmp->size);
     tmp->array[a->array[i]] += 1;
   }
-  int h = 0;
+  unsigned h = 0;
   for(int i = 0; i < tmp->size; ++i){
     if(tmp->array[i] != 0){
-      h = hash_combine(hash_combine(h, i), tmp->array[i]);
+      h = hash_combine(hash_combine(h, i), (unsigned) tmp->array[i]);
     }
   }
   return h;
@@ -154,6 +159,23 @@ int int_array_compare(int_array* a, int_array* b){
     }
   }
   return b->size - a->size;
+}
+
+int_array trivial_isomorphism(int size){
+  int_array iso = int_array_new(size);
+  for(int i = 0; i < size; ++i){
+    iso.array[i] = i;
+  }
+  return iso;
+}
+
+int_array random_isomorphism(int size){
+  int_array iso = trivial_isomorphism(size);
+  for(int i = 0; i < size; ++i){
+    int j = i + rand()% (size-i);
+    SWAP(int, iso.array[i], iso.array[j]);
+  }
+  return iso;
 }
 
 // int_array_array
