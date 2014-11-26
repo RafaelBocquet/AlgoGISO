@@ -8,8 +8,12 @@
     b = tmp;                                      \
   }
 
-size_t hash_combine(size_t seed, size_t value){
-  return seed ^ (value + 0x9E3779B9 + (seed<<6) + (seed>>2));
+int int_compare(int a, int b){
+  return (a < b) ? -1 : (b < a);
+}
+
+unsigned hash_combine(unsigned seed, unsigned value){
+  return seed ^ (value + 0x9e3779b9 + (seed<<6) + (seed>>2));
 }
 
 #endif
