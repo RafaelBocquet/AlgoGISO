@@ -7,6 +7,7 @@
 #include "array.h"
 #include "partition.h"
 #include "util.h"
+#include "wl_partition.h"
 
 /*
  * Choix effectués:
@@ -93,6 +94,21 @@ partition graph_degree_partition(graph* g){
   }
   // partition_cleanup(&a);
   return a;
+}
+
+// empty partition if invalid
+wl_partition wl_graph_degree_partition(graph (*g)[2]){
+  assert(g[0] != NULL && g[1] != NULL);
+  assert(g[0]->size == g[1]->size);
+  wl_partition p = wl_partition_new_with_classes(g[0]->size, g[0]->size + 1);
+  TWICE(j) for(int i = 0; i < g[j]->size; ++i){
+    wl_partition_set_class_single(&p, g[j]->array[i].size, j, i);
+  }
+  if(!wl_partition_cleanup(&p)){
+    wl_partition_free(&p);
+    p = wl_partition_empty();
+  }
+  return p;
 }
 
 graph graph_reverse(graph* g){

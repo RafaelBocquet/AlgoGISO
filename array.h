@@ -27,6 +27,10 @@ void int_array_sort_less_bounded(int_array* array, int_array* tmp);
 bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* tmp);
 unsigned int_array_hash_bounded(int_array* a, int_array* tmp);
 int int_array_compare(int_array* a, int_array* b);
+int int_array_back(int_array* array);
+void int_array_remove_back(int_array* array);
+
+
 int_array trivial_isomorphism(int size);
 int_array random_isomorphism(int size);
 
@@ -43,9 +47,21 @@ int_array_array int_array_array_new(int size);
 void int_array_array_free(int_array_array* array);
 int_array_array int_array_array_copy(int_array_array* array);
 void int_array_array_append(int_array_array* array, int_array value);
-int int_array_back(int_array* array);
-void int_array_remove_back(int_array* array);
 void int_array_array_sort(int_array_array* array, int (*cmp)(int_array*, int_array*));
 void int_array_array_sort_less(int_array_array* array);
+
+// int_array_pair_array
+
+typedef struct int_array_pair_array{
+  int       size;
+  int       bufferSize;
+  int_array (*array)[2];
+} int_array_pair_array;
+
+int_array_pair_array int_array_pair_array_empty();
+int_array_pair_array int_array_pair_array_new(int size);
+void int_array_pair_array_free(int_array_pair_array* array);
+int_array_pair_array int_array_pair_array_copy(int_array_pair_array* array);
+void int_array_pair_array_append(int_array_pair_array* array, int_array value[2]);
 
 #endif

@@ -239,3 +239,70 @@ void int_array_array_sort_less(int_array_array* array){
   int_array_array_sort(array, int_array_compare);
 }
 
+
+int_array_pair_array int_array_pair_array_empty(){
+  int_array_pair_array a;
+  a.size       = 0;
+  a.bufferSize = 0;
+  a.array      = NULL;
+  return a;
+}
+
+int_array_pair_array int_array_pair_array_new(int size){
+  int_array_pair_array a;
+  a.size       = size;
+  a.bufferSize = size;
+  a.array      = malloc(size * 2 * sizeof(int_array));
+  for(int i = 0; i < size; ++i){
+    a.array[i][0] = int_array_empty();
+    a.array[i][1] = int_array_empty();
+  }
+  return a;
+}
+
+void int_array_pair_array_free(int_array_pair_array* array){
+  for(int i = 0; i < array->size; ++i){
+    int_array_free(&array->array[i][0]);
+    int_array_free(&array->array[i][1]);
+  }
+  free(array->array);
+}
+
+int_array_pair_array int_array_pair_array_copy(int_array_pair_array* array){
+  int_array_pair_array a;
+  a.size = array->size;
+  a.bufferSize = a.size;
+  if(a.size != 0){
+    a.array = malloc(a.size * sizeof(int_array));
+    for(int i = 0; i < a.size; ++i){
+      a.array[i][0] = int_array_copy(&array->array[i][0]);
+      a.array[i][1] = int_array_copy(&array->array[i][1]);
+    }
+  }else{
+    a.array = NULL;
+  }
+  return a;
+}
+
+void int_array_pair_array_append(int_array_pair_array* array, int_array value[2]){
+  if(array->size < array->bufferSize){
+    array->array[array->size][0] = value[0];
+    array->array[array->size][1] = value[1];
+    array->size += 1;
+  }else{
+    int nBufferSize = (3 * array->bufferSize) / 2 + 1;
+    int_array (*a)[2] = malloc(nBufferSize * 2 * sizeof(int_array));
+    for(int i = 0; i < array->size; ++i){
+      a[i][0] = array->array[i][0];
+      a[i][1] = array->array[i][1];
+    }
+    a[array->size][0] = value[0];
+    a[array->size][1] = value[1];
+    array->size += 1;
+    if(array->array){
+      free(array->array);
+    }
+    array->array = a;
+    array->bufferSize = nBufferSize;
+  }
+}

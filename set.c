@@ -23,6 +23,20 @@ void int_set_free(int_set* s){
   }
 }
 
+int_set int_set_copy(int_set* s){
+  assert(s != NULL);
+  if((*s) == NULL){
+    return NULL;
+  }else{
+    return make_set_node((*s)->value, int_set_copy(&(*s)->l), int_set_copy(&(*s)->r));
+  }
+}
+
+bool int_set_is_empty(int_set* s){
+  assert(s != NULL);
+  return (*s) == NULL;
+}
+
 void int_set_print(int_set* s){
   assert(s != NULL);
   if(*s != NULL){
@@ -150,4 +164,13 @@ int int_set_delete(int_set* s){
   }
   delete_(NULL, s, false);
   return rt;
+}
+
+void int_set_map_monotonous(int_set* s, int(*f)(int)){
+  assert(s != NULL);
+  if(*s != NULL){
+    int_set_map_monotonous(&(*s)->l, f);
+    (*s)->value = f((*s)->value);
+    int_set_map_monotonous(&(*s)->r, f);
+  }
 }
