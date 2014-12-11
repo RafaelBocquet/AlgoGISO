@@ -23,6 +23,7 @@ graph graph_random(int size, int nedge){
     int j = i + rand() % (size*size-i);
     SWAP(int, rnd.array[i], rnd.array[j]);
     int_array_append(&g.array[rnd.array[i] / size], rnd.array[i] % size);
+    //    int_array_append(&g.array[rand() % size], rand() % size);
   }
   int_array_free(&rnd);
   for(int i = 0; i < g.size; ++i){
