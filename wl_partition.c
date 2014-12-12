@@ -3,11 +3,11 @@
 #include "stdio.h"
 
 int wl_hash_f(int i){
-  return i*i;
+  return i*i*i;
 }
 
 void wl_print_partition(wl_partition* p){
-  for(int i = 0; i < p->partition.size; ++i){
+  for(int i = 0; i < p->partition.size; ++i) if(p->partition.array[i][0].size != 0) {
     printf("%d : \n", i);
     TWICE(k){
       printf("\t");

@@ -306,6 +306,7 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
             h += int_rotate(wl_hash_f(p->elements[l].array[rg[l]->array[p->partition.array[i][l].array[j]].array[k]]));
           }
           if(h != p->elements_hash[l].array[p->partition.array[i][l].array[j]]){
+            wl_print_partition(p);
             printf("%d %d %d %d\n", i, p->partition.array[i][l].array[j], h, p->elements_hash[l].array[p->partition.array[i][l].array[j]]);
           }
           assert(h == p->elements_hash[l].array[p->partition.array[i][l].array[j]]);
@@ -407,7 +408,7 @@ int_array graph_isomorphism_WL(graph* g[2]){
   TWICE(i) { rg[i] = malloc(2*sizeof(graph*)); *rg[i] = graph_reverse(g[i]); }
   
   bool backtrack(wl_partition* p, int depth){
-    printf("Backtrack depth %d\n", depth);
+    // printf("Backtrack depth %d\n", depth);
       
     if(!stable_partition(g, rg, p)){
       return false;
