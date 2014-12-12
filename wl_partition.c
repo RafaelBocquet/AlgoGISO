@@ -3,7 +3,7 @@
 #include "stdio.h"
 
 int wl_hash_f(int i){
-  return i*i*i;
+  return i;
 }
 
 void wl_print_partition(wl_partition* p){

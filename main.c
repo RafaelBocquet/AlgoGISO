@@ -243,7 +243,7 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
   assert(rg[0]->size == rg[1]->size);
   assert(g[0]->size == rg[0]->size);
   TWICE(i) assert(g[i]->size == p->elements[i].size);
-  
+
   // wl_print_partition(p);
   
   int_array signature(graph* g, int i, int j){
@@ -335,22 +335,22 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
         }
 
         // Partition of signatures
-        if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[0]],
-		       p->elements_hash[0].array[p->partition.array[i][0].array[psize-1]]) != 0 ||
-	   int_compare(p->elements_hash[1].array[p->partition.array[i][1].array[0]],
-		       p->elements_hash[1].array[p->partition.array[i][1].array[psize-1]]) != 0 ||
-	   int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[0]],
-		       p->elements_hash[1].array[p->partition.array[i][1].array[0]]) != 0){
+        if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[I[0].array[0]]],
+		       p->elements_hash[0].array[p->partition.array[i][0].array[I[0].array[psize-1]]]) != 0 ||
+	   int_compare(p->elements_hash[1].array[p->partition.array[i][1].array[I[1].array[0]]],
+		       p->elements_hash[1].array[p->partition.array[i][1].array[I[1].array[psize-1]]]) != 0 ||
+	   int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[I[0].array[0]]],
+		       p->elements_hash[1].array[p->partition.array[i][1].array[I[1].array[0]]]) != 0){
           int j = 0;
           while(j != psize){
-            if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[j]],
-			   p->elements_hash[1].array[p->partition.array[i][1].array[j]]) != 0){
+            if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[I[0].array[j]]],
+			   p->elements_hash[1].array[p->partition.array[i][1].array[I[1].array[j]]]) != 0){
               local_free();
               return false;
             }
             int k[2]; TWICE(l) k[l] = j + 1;
-            TWICE(l) while(k[l] < psize && int_compare(p->elements_hash[l].array[p->partition.array[i][l].array[j]],
-						       p->elements_hash[l].array[p->partition.array[i][l].array[k[l]]]) == 0){
+            TWICE(l) while(k[l] < psize && int_compare(p->elements_hash[l].array[p->partition.array[i][l].array[I[l].array[j]]],
+						       p->elements_hash[l].array[p->partition.array[i][l].array[I[l].array[k[l]]]]) == 0){
               k[l] += 1;
             }
             if(k[0] != k[1]){
@@ -367,17 +367,19 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
           }
 	  // For all neighbors from the class
 	  for(int k = 0; k < psize; ++k){
-	    for(int m = 0; m < g[0]->array[k].size; ++m){
-	      int_set_insert(&p->update_queue, p->elements[0].array[g[0]->array[k].array[m]]);
+            int k_[2] = { p->partition.array[i][0].array[k]
+                          , p->partition.array[i][1].array[k] };
+	    for(int m = 0; m < g[0]->array[k_[0]].size; ++m){
+	      int_set_insert(&p->update_queue, p->elements[0].array[g[0]->array[k_[0]].array[m]]);
 	    }
-	    for(int m = 0; m < rg[0]->array[k].size; ++m){
-	      int_set_insert(&p->update_queue, p->elements[0].array[rg[0]->array[k].array[m]]);
+	    for(int m = 0; m < rg[0]->array[k_[0]].size; ++m){
+	      int_set_insert(&p->update_queue, p->elements[0].array[rg[0]->array[k_[0]].array[m]]);
 	    }
-	    TWICE(j) for(int m = 0; m < g[j]->array[k].size; ++m){
-	      p->elements_hash[j].array[g[j]->array[k].array[m]] += int_rotate(wl_hash_f(p->elements[j].array[k])) - int_rotate(wl_hash_f(i));
+	    TWICE(j) for(int m = 0; m < g[j]->array[k_[j]].size; ++m){
+              p->elements_hash[j].array[g[j]->array[k_[j]].array[m]] += int_rotate(wl_hash_f(p->elements[j].array[k_[j]])) - int_rotate(wl_hash_f(i));
 	    }
-	    TWICE(j) for(int m = 0; m < rg[j]->array[k].size; ++m){
-	      p->elements_hash[j].array[rg[j]->array[k].array[m]] += wl_hash_f(p->elements[j].array[k]) - wl_hash_f(i);
+	    TWICE(j) for(int m = 0; m < rg[j]->array[k_[j]].size; ++m){
+              p->elements_hash[j].array[rg[j]->array[k_[j]].array[m]] += wl_hash_f(p->elements[j].array[k_[j]]) - wl_hash_f(i);
 	    }
 	  }
 	  TWICE(j) p->partition.array[i][j] = int_array_empty();
@@ -416,11 +418,11 @@ int_array graph_isomorphism_WL(graph* g[2]){
     
     // TODO : better choice of i
     int i = 0;
-    while(i < g[0]->size && p->partition.array[i][0].size <= 1){
+    while(i < p->partition.size && p->partition.array[i][0].size <= 1){
       i += 1;
     }
     // 1 element / class : isomorphism
-    if(i == g[0]->size){
+    if(i == p->partition.size){
       return true;
     }
     
@@ -507,11 +509,11 @@ int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   int_array iso;
   graph* g[2] = { &a, &b };
   if((iso = graph_isomorphism_WL(g)).size != 0){
-    assert(test_isomorphism(&a, &b, &iso));
     printf("oui\n");
     for(int i = 0; i < a.size; ++i){
       printf("%d ", iso.array[i]);
     } printf("\n");
+    assert(test_isomorphism(&a, &b, &iso));
     int_array_free(&iso);
   }else{
     printf("non\n");
