@@ -97,7 +97,7 @@ partition graph_degree_partition(graph* g){
 }
 
 // empty partition if invalid
-wl_partition wl_graph_degree_partition(graph (*g)[2]){
+wl_partition wl_graph_degree_partition(graph* g[2]){
   assert(g[0] != NULL && g[1] != NULL);
   assert(g[0]->size == g[1]->size);
   wl_partition p = wl_partition_new_with_classes(g[0]->size, g[0]->size + 1);
@@ -107,6 +107,9 @@ wl_partition wl_graph_degree_partition(graph (*g)[2]){
   if(!wl_partition_cleanup(&p)){
     wl_partition_free(&p);
     p = wl_partition_empty();
+  }else{
+    int_set_free(&p.update_queue);
+    p.update_queue = int_set_range(0, p.partition.size-1);
   }
   return p;
 }

@@ -14,6 +14,15 @@ int_set int_set_empty(){
   return NULL;
 }
 
+int_set int_set_range(int a, int b){
+  if(b < a){
+    return NULL;
+  }else{
+    int mid = (a + b) / 2;
+    return make_set_node(mid, int_set_range(a, mid-1), int_set_range(mid+1, b));
+  }
+}
+
 void int_set_free(int_set* s){
   assert(s != NULL);
   if(*s != NULL){
@@ -47,6 +56,7 @@ void int_set_print(int_set* s){
 }
 
 void splay_zig(set_node** s, bool d){
+  assert(s != NULL && (*s) != NULL);
   if(d == false){
     set_node ns = { (*s)->l->value, (*s)->l->l, (*s)->l };
     set_node nsl = { (*s)->value, (*s)->l->r, (*s)->r };
@@ -61,6 +71,7 @@ void splay_zig(set_node** s, bool d){
 }
 
 void splay_zigzig(set_node** p, bool d){
+  assert(p != NULL && (*p) != NULL);
   if(d == false){
     set_node np = { (*p)->l->l->value, (*p)->l->l->l, (*p)->l };
     set_node ns = { (*p)->l->value, (*p)->l->l->r, (*p)->l->l };
@@ -79,17 +90,18 @@ void splay_zigzig(set_node** p, bool d){
 }
 
 void splay_zigzag(set_node** p, bool d){
+  assert(p != NULL && (*p) != NULL);
   if(d == false){
     set_node np = { (*p)->l->r->value, (*p)->l, (*p)->l->r };
-    set_node ns = { (*p)->l->value, (*p)->l->l, (*p)->l->l->l };
-    set_node nsr = { (*p)->value, (*p)->l->l->r, (*p)->r };
+    set_node ns = { (*p)->l->value, (*p)->l->l, (*p)->l->r->l };
+    set_node nsr = { (*p)->value, (*p)->l->r->r, (*p)->r };
     *(*p)->l->r = nsr;
     *(*p)->l = ns;
     *(*p) = np;
   }else{
     set_node np = { (*p)->r->l->value, (*p)->r->l, (*p)->r };
-    set_node ns = { (*p)->r->value, (*p)->r->r->r, (*p)->r->r };
-    set_node nsr = { (*p)->value, (*p)->l, (*p)->r->r->l };
+    set_node ns = { (*p)->r->value, (*p)->r->l->r, (*p)->r->r };
+    set_node nsr = { (*p)->value, (*p)->l, (*p)->r->l->l };
     *(*p)->r->l = nsr;
     *(*p)->r = ns;
     *(*p) = np;

@@ -235,7 +235,7 @@ int_array graph_isomorphism_degree_partition(graph* a, graph* b){
   return iso;
 }
 
-bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
+bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
   TWICE(i) assert(g[i] != NULL);
   TWICE(i) assert(rg[i] != NULL);
   assert(p != NULL);
@@ -243,7 +243,7 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
   assert(rg[0]->size == rg[1]->size);
   assert(g[0]->size == rg[0]->size);
   TWICE(i) assert(g[i]->size == p->elements[i].size);
-
+  
   int_array signature(graph* g, int i, int j){
     int_array sig = int_array_new(g->array[j].size);
     for(int k = 0; k < g->array[j].size; ++k){
@@ -254,7 +254,7 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
 
   while(!int_set_is_empty(&p->update_queue)){
     int i = int_set_delete(&p->update_queue);
-    
+      // for(int i = 0; i < p->partition.size; ++i){
     if(p->partition.array[i][0].size != p->partition.array[i][1].size){
       //      local_free();
       return false;
@@ -262,36 +262,36 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
     
     if(p->partition.array[i][0].size > 0){
       if(p->partition.array[i][0].size == 1){
-        /* // No refinement possible, still check if the partition is valid ! */
-        /* int ai = pa->partition.array[i].array[0]; */
-        /* int bi = pb->partition.array[i].array[0]; */
-        /* if(a->array[ai].size != b->array[bi].size */
-        /*    || ra->array[ai].size != rb->array[bi].size){ */
-        /*   local_free(); */
-        /*   return false; */
-        /* } */
-        /* int_array siga  = signature(a, pa, ai); */
-        /* int_array sigb  = signature(b, pb, bi); */
-        /* int_array sigra = signature(ra, pa, ai); */
-        /* int_array sigrb = signature(rb, pb, bi); */
-        /* int_array_sort_less(&siga); */
-        /* int_array_sort_less(&sigb); */
-        /* int_array_sort_less(&sigra); */
-        /* int_array_sort_less(&sigrb); */
-        /* if(int_array_compare(&siga, &sigb) != 0 */
-        /*    || int_array_compare(&sigra, &sigrb) != 0){ */
-        /*   local_free(); */
-        /*   int_array_free(&siga); */
-        /*   int_array_free(&sigb); */
-        /*   int_array_free(&sigra); */
-        /*   int_array_free(&sigrb); */
-        /*   return false; */
-        /* } */
+        // No refinement possible, still check if the partition is valid !
+        int a[2];
+        TWICE(j) a[j] = p->partition.array[i][j].array[0];
+        if(g[0]->array[a[0]].size != g[1]->array[a[1]].size
+           || rg[0]->array[a[0]].size != rg[1]->array[a[1]].size){
+          /* local_free(); */
+          return false;
+        }
+        int_array sig[2]; TWICE(j) {
+          sig[j] = signature(g[j], j, a[j]);
+          int_array_sort_less(&sig[j]);
+        }
+        int_array rsig[2]; TWICE(j) {
+          rsig[j] = signature(rg[j], j, a[j]);
+          int_array_sort_less(&rsig[j]);
+        }
+        if(int_array_compare(&sig[0], &sig[1]) != 0
+           || int_array_compare(&rsig[0], &rsig[1]) != 0){
+          /* local_free(); */
+          /* int_array_free(&siga); */
+          /* int_array_free(&sigb); */
+          /* int_array_free(&sigra); */
+          /* int_array_free(&sigrb); */
+          return false;
+        }
         /* int_array_free(&siga); */
         /* int_array_free(&sigb); */
         /* int_array_free(&sigra); */
         /* int_array_free(&sigrb); */
-        /* // Partition is valid from this node */
+        // Partition is valid from this node
       }else{
         // Signatures
         int_array_array sigs[2]; TWICE(j) sigs[j] = int_array_array_new(p->partition.array[i][j].size);
@@ -343,7 +343,7 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
            int_array_compare(&sigs[0].array[I[0].array[0]], &sigs[1].array[I[1].array[0]]) != 0){
           int j = 0;
           while(j != sigs[0].size){
-            if(&sigs[0].array[I[0].array[j]] != &sigs[1].array[I[1].array[j]]){
+            if(int_array_compare(&sigs[0].array[I[0].array[j]], &sigs[1].array[I[1].array[j]]) != 0){
               local_free();
               return false;
             }
@@ -356,6 +356,15 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
               return false;
             }
             int cls = wl_partition_new_class(p);
+            // + mark as updatable all neighbors
+            // + TODO update hashes
+            for(int k = 0; k < sigs[0].array[I[0].array[j]].size; ++k){
+              int_set_insert(&p->update_queue, sigs[0].array[I[0].array[j]].array[k]);
+            }
+            for(int k = 0; k < rsigs[0].array[I[0].array[j]].size; ++k){
+              int_set_insert(&p->update_queue, rsigs[0].array[I[0].array[j]].array[k]);
+            }
+            //
             while(j != k[0]){
               int el[2]; TWICE(l) el[l] = p->partition.array[i][l].array[I[l].array[j]];
               wl_partition_set_class(p, cls, el);
@@ -381,20 +390,22 @@ bool stable_partition(graph (*g)[2], graph (*rg)[2], wl_partition* p){
   return true;
 }
 
-int_array graph_isomorphism_WL(graph (*g)[2]){
+int_array graph_isomorphism_WL(graph* g[2]){
   TWICE(i) assert(g[i] != NULL);
   if(g[0]->size != g[1]->size){
     return int_array_empty();
   }
 
-  graph (*rg)[2] = malloc(2 * sizeof(graph*));
-  TWICE(i) *rg[i] = graph_reverse(g[i]);
+  graph* rg[2];
+  TWICE(i) { rg[i] = malloc(2*sizeof(graph*)); *rg[i] = graph_reverse(g[i]); }
   
   bool backtrack(wl_partition* p, int depth){
     printf("Backtrack depth %d\n", depth);
+      
     if(!stable_partition(g, rg, p)){
       return false;
     }
+    
     // TODO : better choice of i
     int i = 0;
     while(i < g[0]->size && p->partition.array[i][0].size == 1){
@@ -420,6 +431,8 @@ int_array graph_isomorphism_WL(graph (*g)[2]){
 
       wl_partition_set_class(&p_, cls, a);
 
+      p_.update_queue = int_set_range(0, p_.partition.size-1);
+      
       if(backtrack(&p_, depth+1)){
         SWAP(wl_partition, p_, *p)
         wl_partition_free(&p_);
@@ -458,21 +471,16 @@ int_array graph_isomorphism_WL(graph (*g)[2]){
 int main(int argc __attribute__((unused)), char** argv __attribute__((unused))){
   srand(time(NULL));
   // Entrée
-  /* printf("Read graph 1\n"); */
-  /* graph a = graph_read(); */
-  /* printf("Read graph 2\n"); */
-  /* graph b = graph_read(); */
-  int sz; scanf("%d", &sz);
-  graph a = graph_random(sz, sz);
-  int_array in_iso = random_isomorphism(sz);
-    for(int i = 0; i < a.size; ++i){
-      printf("%d ", in_iso.array[i]);
-    } printf("\n");
-  graph b = graph_apply_isomorphism(&a, &in_iso);
-  int_array_free(&in_iso);
+  graph a = graph_read_matrix();
+  graph b = graph_read_matrix();
+  /* int sz; scanf("%d", &sz); */
+  /* graph a = graph_random(sz, sz); */
+  /* int_array in_iso = random_isomorphism(a.size); */
+  /* graph b = graph_apply_isomorphism(&a, &in_iso); */
+  /* int_array_free(&in_iso); */
   // Appel de l'algorithme
   int_array iso;
-  graph (*g)[2] = malloc(2 * sizeof(graph*));
+  graph* g[2] = { &a, &b };
   if((iso = graph_isomorphism_WL(g)).size != 0){
     assert(test_isomorphism(&a, &b, &iso));
     printf("oui\n");

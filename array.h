@@ -25,7 +25,6 @@ void int_array_sort(int_array* array, int (*cmp)(int, int));
 void int_array_sort_less(int_array* array);
 void int_array_sort_less_bounded(int_array* array, int_array* tmp);
 bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* tmp);
-unsigned int_array_hash_bounded(int_array* a, int_array* tmp);
 int int_array_compare(int_array* a, int_array* b);
 int int_array_back(int_array* array);
 void int_array_remove_back(int_array* array);

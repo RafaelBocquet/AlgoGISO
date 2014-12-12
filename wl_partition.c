@@ -1,5 +1,22 @@
 #include "wl_partition.h"
 
+#include "stdio.h"
+
+void print_partition(wl_partition* p){
+  for(int i = 0; i < p->partition.size; ++i){
+    printf("%d : \n", i);
+    TWICE(k){
+      printf("\t");
+      for(int j = 0; j < p->partition.array[i][k].size; ++j){
+        printf("%d(%d) ", p->partition.array[i][k].array[j], p->elements[k].array[p->partition.array[i][k].array[j]]);
+        fflush(stdout);
+        assert(p->elements[k].array[p->partition.array[i][k].array[j]] == i);
+      }
+      printf("\n");
+    }
+  }
+}
+
 wl_partition wl_partition_empty(){
   wl_partition p;
   p.partition            = int_array_pair_array_empty();
@@ -32,7 +49,7 @@ wl_partition wl_partition_new_with_classes(int size, int cls_size){
 wl_partition wl_partition_copy(wl_partition* p){
   wl_partition q;
   q.partition = int_array_pair_array_copy(&p->partition);
-  TWICE(i) q.elements[i] = int_array_copy(&p->elements[0]);
+  TWICE(i) q.elements[i] = int_array_copy(&p->elements[i]);
   q.update_queue = int_set_copy(&p->update_queue);
 
   return q;
@@ -56,7 +73,7 @@ int wl_partition_new_class(wl_partition* p){
 void wl_partition_set_class(wl_partition* p, int cls, int a[2]){
   assert(p != NULL);
   TWICE(i) assert(a[i] >= 0 && a[i] < p->elements[i].size);
-  assert(cls= 0 && cls < p->partition.size);
+  assert(cls >= 0 && cls < p->partition.size);
 
   TWICE(i){
     p->elements[i].array[a[i]] = cls;
@@ -68,7 +85,7 @@ void wl_partition_set_class_single(wl_partition* p, int cls, int i, int a){
   assert(p != NULL);
   assert(i == 0 || i == 1);
   assert(a >= 0 && a < p->elements[i].size);
-  assert(cls= 0 && cls < p->partition.size);
+  assert(cls >= 0 && cls < p->partition.size);
 
   p->elements[i].array[a] = cls;
   int_array_append(&p->partition.array[cls][i], a);
@@ -96,6 +113,7 @@ bool wl_partition_cleanup(wl_partition* p){
       cur += 1;
     }
   }
+  
   int mapping_f(int i){
     return mapping.array[i];
   }

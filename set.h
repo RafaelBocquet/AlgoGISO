@@ -13,6 +13,7 @@ typedef set_node* int_set;
 
 int_set int_set_empty();
 void int_set_free(int_set* s);
+int_set int_set_range(int a, int b);
 int_set int_set_copy(int_set* s);
 void int_set_print(int_set* s);
 bool int_set_is_empty(int_set* s);

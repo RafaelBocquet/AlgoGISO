@@ -120,14 +120,6 @@ bool int_array_unsorted_compare_bounded(int_array* a, int_array* b, int_array* t
   return true;
 }
 
-unsigned int_array_hash_bounded(int_array* a, int_array* tmp){
-  unsigned h = 0;
-  for(int i = 0; i < a->size; ++i){
-    h = hash_combine(h, a->array[i]);
-  }
-  return h;
-}
-
 int int_array_compare(int_array* a, int_array* b){
   assert(a != NULL && b != NULL);
   for(int i = 0; i < a->size && i < b->size; ++i){
@@ -269,11 +261,12 @@ void int_array_pair_array_free(int_array_pair_array* array){
 }
 
 int_array_pair_array int_array_pair_array_copy(int_array_pair_array* array){
+  assert(array != NULL);
   int_array_pair_array a;
   a.size = array->size;
   a.bufferSize = a.size;
   if(a.size != 0){
-    a.array = malloc(a.size * sizeof(int_array));
+    a.array = malloc(a.size * 2 * sizeof(int_array));
     for(int i = 0; i < a.size; ++i){
       a.array[i][0] = int_array_copy(&array->array[i][0]);
       a.array[i][1] = int_array_copy(&array->array[i][1]);
