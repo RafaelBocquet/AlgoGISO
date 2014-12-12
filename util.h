@@ -10,7 +10,8 @@
 
 #define TWICE(x) for(int x = 0; x <= 1; x += 1)
 
+int int_rotate(int a);
+
 int int_compare(int a, int b);
-unsigned hash_combine(unsigned seed, unsigned value);
 
 #endif

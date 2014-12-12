@@ -106,6 +106,7 @@ wl_partition wl_graph_degree_partition(graph* g[2]){
     for(int k = 0; k < g[j]->array[i].size; ++k){
       int a = g[j]->array[i].array[k];
       p.elements_hash[j].array[i] += wl_hash_f(g[j]->array[a].size);
+      p.elements_hash[j].array[a] += int_rotate(wl_hash_f(g[j]->array[i].size));
     }
   }
   /* if(!wl_partition_cleanup(&p)){ */

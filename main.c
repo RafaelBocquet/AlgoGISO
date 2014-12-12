@@ -296,29 +296,21 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
         /* int_array_free(&sigrb); */
         // Partition is valid from this node
       }else{
-        // Signatures
-        /* int_array_array sigs[2]; TWICE(j) sigs[j] = int_array_array_new(p->partition.array[i][j].size); */
-        /* int_array_array rsigs[2]; TWICE(j) rsigs[j] = int_array_array_new(p->partition.array[i][j].size); */
-        /* TWICE(k) for(int j = 0; j < p->partition.array[i][k].size; ++j){ */
-        /*   int a = p->partition.array[i][k].array[j]; */
-        /*   // TODO : remove the sorting */
-        /*   sigs[k].array[j] = signature(g[k], k, a); */
-        /*   int_array_sort_less(&sigs[k].array[j]); */
-        /*   rsigs[k].array[j] = signature(rg[k], k, a); */
-        /*   int_array_sort_less(&rsigs[k].array[j]); */
-        /* } */
-        
-        /* int_array hasha = int_array_new(sigsa.size); */
-        /* for(int i = 0; i < sigsa.size; ++i){ */
-        /*   hasha.array[i] = int_array_hash_bounded(&sigsa.array[i], &tmp_bounded) ^ int_array_hash_bounded(&sigsra.array[i], &tmp_bounded); */
-        /* } */
-        /* int_array hashb = int_array_new(sigsb.size); */
-        /* for(int i = 0; i < sigsb.size; ++i){ */
-        /*   hashb.array[i] = int_array_hash_bounded(&sigsb.array[i], &tmp_bounded) ^ int_array_hash_bounded(&sigsrb.array[i], &tmp_bounded); */
-        /* } */
-
-        /* // To partition the signatures, while preserving knowledge of which nodes these are the signatures */
-        
+        // Check signatures
+        TWICE(l) for(int j = 0; j < psize; ++j){
+          int h = 42;
+          for(int k = 0; k < g[l]->array[p->partition.array[i][l].array[j]].size; ++k){
+            h += wl_hash_f(p->elements[l].array[g[l]->array[p->partition.array[i][l].array[j]].array[k]]);
+          }
+          for(int k = 0; k < rg[l]->array[p->partition.array[i][l].array[j]].size; ++k){
+            h += int_rotate(wl_hash_f(p->elements[l].array[rg[l]->array[p->partition.array[i][l].array[j]].array[k]]));
+          }
+          if(h != p->elements_hash[l].array[p->partition.array[i][l].array[j]]){
+            printf("%d %d %d %d\n", i, p->partition.array[i][l].array[j], h, p->elements_hash[l].array[p->partition.array[i][l].array[j]]);
+          }
+          assert(h == p->elements_hash[l].array[p->partition.array[i][l].array[j]]);
+        }
+        // Partitioning items with different signatures
         int_array I[2];
         TWICE(k) {
           I[k] = trivial_isomorphism(psize);
@@ -365,33 +357,26 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
               return false;
             }
             int cls = wl_partition_new_class(p);
-            // + mark as updatable all neighbors
-            /* for(int k = 0; k < sigs[0].array[I[0].array[j]].size; ++k){ */
-            /*   int_set_insert(&p->update_queue, sigs[0].array[I[0].array[j]].array[k]); */
-            /* } */
-            /* for(int k = 0; k < rsigs[0].array[I[0].array[j]].size; ++k){ */
-            /*   int_set_insert(&p->update_queue, rsigs[0].array[I[0].array[j]].array[k]); */
-            /* } */
-            //
+            
             while(j != k[0]){
               int el[2]; TWICE(l) el[l] = p->partition.array[i][l].array[I[l].array[j]];
               wl_partition_set_class(p, cls, el);
               j += 1;
             }
           }
-          /* int_array_free(&pa->partition.array[i]); */
-          /* int_array_free(&pb->partition.array[i]); */
 	  // For all neighbors from the class
 	  for(int k = 0; k < psize; ++k){
-	    // IF NOT IN SELF CLASS ?
 	    for(int m = 0; m < g[0]->array[k].size; ++m){
 	      int_set_insert(&p->update_queue, p->elements[0].array[g[0]->array[k].array[m]]);
 	    }
 	    for(int m = 0; m < rg[0]->array[k].size; ++m){
 	      int_set_insert(&p->update_queue, p->elements[0].array[rg[0]->array[k].array[m]]);
 	    }
+	    TWICE(j) for(int m = 0; m < g[j]->array[k].size; ++m){
+	      p->elements_hash[j].array[g[j]->array[k].array[m]] += int_rotate(wl_hash_f(p->elements[j].array[k])) - int_rotate(wl_hash_f(i));
+	    }
 	    TWICE(j) for(int m = 0; m < rg[j]->array[k].size; ++m){
-	      p->elements_hash[j].array[rg[0]->array[k].array[m]] += wl_hash_f(p->elements[j].array[k]) - wl_hash_f(i);
+	      p->elements_hash[j].array[rg[j]->array[k].array[m]] += wl_hash_f(p->elements[j].array[k]) - wl_hash_f(i);
 	    }
 	  }
 	  TWICE(j) p->partition.array[i][j] = int_array_empty();
@@ -452,6 +437,23 @@ int_array graph_isomorphism_WL(graph* g[2]){
       int_array_remove_back(&p_.partition.array[i][1]);
 
       wl_partition_set_class(&p_, cls, a);
+
+      int psize = p_.partition.array[i][0].size;
+      
+      for(int k = 0; k < psize; ++k){
+        for(int m = 0; m < g[0]->array[k].size; ++m){
+          int_set_insert(&p->update_queue, p->elements[0].array[g[0]->array[k].array[m]]);
+        }
+        for(int m = 0; m < rg[0]->array[k].size; ++m){
+          int_set_insert(&p->update_queue, p->elements[0].array[rg[0]->array[k].array[m]]);
+        }
+      }
+      TWICE(j) for(int m = 0; m < g[j]->array[a[j]].size; ++m){
+        p_.elements_hash[j].array[g[j]->array[a[j]].array[m]] += int_rotate(wl_hash_f(p_.elements[j].array[a[j]])) - int_rotate(wl_hash_f(i));
+      }
+      TWICE(j) for(int k = 0; k < rg[j]->array[a[j]].size; ++k){
+        p_.elements_hash[j].array[rg[j]->array[a[j]].array[k]] += wl_hash_f(p_.elements[j].array[a[j]]) - wl_hash_f(i);
+      }
 
       p_.update_queue = int_set_range(0, p_.partition.size-1);
       
