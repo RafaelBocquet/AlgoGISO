@@ -103,14 +103,18 @@ wl_partition wl_graph_degree_partition(graph* g[2]){
   wl_partition p = wl_partition_new_with_classes(g[0]->size, g[0]->size + 1);
   TWICE(j) for(int i = 0; i < g[j]->size; ++i){
     wl_partition_set_class_single(&p, g[j]->array[i].size, j, i);
+    for(int k = 0; k < g[j]->array[i].size; ++k){
+      int a = g[j]->array[i].array[k];
+      p.elements_hash[j].array[i] += wl_hash_f(g[j]->array[a].size);
+    }
   }
-  if(!wl_partition_cleanup(&p)){
-    wl_partition_free(&p);
-    p = wl_partition_empty();
-  }else{
-    int_set_free(&p.update_queue);
-    p.update_queue = int_set_range(0, p.partition.size-1);
-  }
+  /* if(!wl_partition_cleanup(&p)){ */
+  /*   wl_partition_free(&p); */
+  /*   p = wl_partition_empty(); */
+  /* }else{ */
+  int_set_free(&p.update_queue);
+  p.update_queue = int_set_range(0, p.partition.size-1);
+  /* } */
   return p;
 }
 

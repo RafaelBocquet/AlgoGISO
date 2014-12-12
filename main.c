@@ -244,6 +244,8 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
   assert(g[0]->size == rg[0]->size);
   TWICE(i) assert(g[i]->size == p->elements[i].size);
   
+  // wl_print_partition(p);
+  
   int_array signature(graph* g, int i, int j){
     int_array sig = int_array_new(g->array[j].size);
     for(int k = 0; k < g->array[j].size; ++k){
@@ -254,14 +256,15 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
 
   while(!int_set_is_empty(&p->update_queue)){
     int i = int_set_delete(&p->update_queue);
+    int psize = p->partition.array[i][0].size;
       // for(int i = 0; i < p->partition.size; ++i){
     if(p->partition.array[i][0].size != p->partition.array[i][1].size){
       //      local_free();
       return false;
     }
     
-    if(p->partition.array[i][0].size > 0){
-      if(p->partition.array[i][0].size == 1){
+    if(psize > 0){
+      if(psize == 1){
         // No refinement possible, still check if the partition is valid !
         int a[2];
         TWICE(j) a[j] = p->partition.array[i][j].array[0];
@@ -294,16 +297,16 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
         // Partition is valid from this node
       }else{
         // Signatures
-        int_array_array sigs[2]; TWICE(j) sigs[j] = int_array_array_new(p->partition.array[i][j].size);
-        int_array_array rsigs[2]; TWICE(j) rsigs[j] = int_array_array_new(p->partition.array[i][j].size);
-        TWICE(k) for(int j = 0; j < p->partition.array[i][k].size; ++j){
-          int a = p->partition.array[i][k].array[j];
-          // TODO : remove the sorting
-          sigs[k].array[j] = signature(g[k], k, a);
-          int_array_sort_less(&sigs[k].array[j]);
-          rsigs[k].array[j] = signature(rg[k], k, a);
-          int_array_sort_less(&rsigs[k].array[j]);
-        }
+        /* int_array_array sigs[2]; TWICE(j) sigs[j] = int_array_array_new(p->partition.array[i][j].size); */
+        /* int_array_array rsigs[2]; TWICE(j) rsigs[j] = int_array_array_new(p->partition.array[i][j].size); */
+        /* TWICE(k) for(int j = 0; j < p->partition.array[i][k].size; ++j){ */
+        /*   int a = p->partition.array[i][k].array[j]; */
+        /*   // TODO : remove the sorting */
+        /*   sigs[k].array[j] = signature(g[k], k, a); */
+        /*   int_array_sort_less(&sigs[k].array[j]); */
+        /*   rsigs[k].array[j] = signature(rg[k], k, a); */
+        /*   int_array_sort_less(&rsigs[k].array[j]); */
+        /* } */
         
         /* int_array hasha = int_array_new(sigsa.size); */
         /* for(int i = 0; i < sigsa.size; ++i){ */
@@ -318,9 +321,10 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
         
         int_array I[2];
         TWICE(k) {
-          I[k] = trivial_isomorphism(sigs[k].size);
+          I[k] = trivial_isomorphism(psize);
           int I_cmp(int a, int b){
-            return int_array_compare(&sigs[k].array[a], &sigs[k].array[b]);
+            return int_compare(p->elements_hash[k].array[p->partition.array[i][k].array[a]],
+			       p->elements_hash[k].array[p->partition.array[i][k].array[b]]);
           }
           int_array_sort(&I[k], I_cmp);
         }
@@ -338,17 +342,22 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
         }
 
         // Partition of signatures
-        if(int_array_compare(&sigs[0].array[I[0].array[0]], &sigs[0].array[I[0].array[sigs[0].size-1]]) != 0 ||
-           int_array_compare(&sigs[1].array[I[1].array[0]], &sigs[1].array[I[1].array[sigs[1].size-1]]) != 0 ||
-           int_array_compare(&sigs[0].array[I[0].array[0]], &sigs[1].array[I[1].array[0]]) != 0){
+        if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[0]],
+		       p->elements_hash[0].array[p->partition.array[i][0].array[psize-1]]) != 0 ||
+	   int_compare(p->elements_hash[1].array[p->partition.array[i][1].array[0]],
+		       p->elements_hash[1].array[p->partition.array[i][1].array[psize-1]]) != 0 ||
+	   int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[0]],
+		       p->elements_hash[1].array[p->partition.array[i][1].array[0]]) != 0){
           int j = 0;
-          while(j != sigs[0].size){
-            if(int_array_compare(&sigs[0].array[I[0].array[j]], &sigs[1].array[I[1].array[j]]) != 0){
+          while(j != psize){
+            if(int_compare(p->elements_hash[0].array[p->partition.array[i][0].array[j]],
+			   p->elements_hash[1].array[p->partition.array[i][1].array[j]]) != 0){
               local_free();
               return false;
             }
             int k[2]; TWICE(l) k[l] = j + 1;
-            TWICE(l) while(k[l] < sigs[l].size && int_array_compare(&sigs[l].array[I[l].array[j]], &sigs[l].array[I[l].array[k[l]]]) == 0){
+            TWICE(l) while(k[l] < psize && int_compare(p->elements_hash[l].array[p->partition.array[i][l].array[j]],
+						       p->elements_hash[l].array[p->partition.array[i][l].array[k[l]]]) == 0){
               k[l] += 1;
             }
             if(k[0] != k[1]){
@@ -357,13 +366,12 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
             }
             int cls = wl_partition_new_class(p);
             // + mark as updatable all neighbors
-            // + TODO update hashes
-            for(int k = 0; k < sigs[0].array[I[0].array[j]].size; ++k){
-              int_set_insert(&p->update_queue, sigs[0].array[I[0].array[j]].array[k]);
-            }
-            for(int k = 0; k < rsigs[0].array[I[0].array[j]].size; ++k){
-              int_set_insert(&p->update_queue, rsigs[0].array[I[0].array[j]].array[k]);
-            }
+            /* for(int k = 0; k < sigs[0].array[I[0].array[j]].size; ++k){ */
+            /*   int_set_insert(&p->update_queue, sigs[0].array[I[0].array[j]].array[k]); */
+            /* } */
+            /* for(int k = 0; k < rsigs[0].array[I[0].array[j]].size; ++k){ */
+            /*   int_set_insert(&p->update_queue, rsigs[0].array[I[0].array[j]].array[k]); */
+            /* } */
             //
             while(j != k[0]){
               int el[2]; TWICE(l) el[l] = p->partition.array[i][l].array[I[l].array[j]];
@@ -373,7 +381,20 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
           }
           /* int_array_free(&pa->partition.array[i]); */
           /* int_array_free(&pb->partition.array[i]); */
-          TWICE(j) p->partition.array[i][j] = int_array_empty();
+	  // For all neighbors from the class
+	  for(int k = 0; k < psize; ++k){
+	    // IF NOT IN SELF CLASS ?
+	    for(int m = 0; m < g[0]->array[k].size; ++m){
+	      int_set_insert(&p->update_queue, p->elements[0].array[g[0]->array[k].array[m]]);
+	    }
+	    for(int m = 0; m < rg[0]->array[k].size; ++m){
+	      int_set_insert(&p->update_queue, p->elements[0].array[rg[0]->array[k].array[m]]);
+	    }
+	    TWICE(j) for(int m = 0; m < rg[j]->array[k].size; ++m){
+	      p->elements_hash[j].array[rg[0]->array[k].array[m]] += wl_hash_f(p->elements[j].array[k]) - wl_hash_f(i);
+	    }
+	  }
+	  TWICE(j) p->partition.array[i][j] = int_array_empty();
         }
         /* int_array_free(&hasha); */
         /* int_array_free(&hashb); */
@@ -386,7 +407,8 @@ bool stable_partition(graph* g[2], graph* rg[2], wl_partition* p){
       }
     }
   }
-  wl_partition_cleanup(p);
+  // wl_print_partition(p);
+  // wl_partition_cleanup(p);
   return true;
 }
 
@@ -408,7 +430,7 @@ int_array graph_isomorphism_WL(graph* g[2]){
     
     // TODO : better choice of i
     int i = 0;
-    while(i < g[0]->size && p->partition.array[i][0].size == 1){
+    while(i < g[0]->size && p->partition.array[i][0].size <= 1){
       i += 1;
     }
     // 1 element / class : isomorphism
@@ -455,9 +477,9 @@ int_array graph_isomorphism_WL(graph* g[2]){
   }
 
   if(backtrack(&p, 0)){
-    wl_partition_cleanup(&p);
+    // wl_partition_cleanup(&p);
     int_array iso = int_array_new(g[0]->size);
-    for(int i = 0; i < g[0]->size; ++i){
+    for(int i = 0; i < p.partition.size; ++i) if(p.partition.array[i][0].size != 0){
       iso.array[p.partition.array[i][0].array[0]] = p.partition.array[i][1].array[0];
     }
     local_free();

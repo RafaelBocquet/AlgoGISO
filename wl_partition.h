@@ -7,11 +7,15 @@
 #include "set.h"
 
 typedef struct wl_partition {
-  
   int_array_pair_array partition;
   int_array            elements[2];
+  int_array            elements_hash[2];
   int_set              update_queue;
 } wl_partition;
+
+int wl_hash_f(int i);
+
+void wl_print_partition(wl_partition* p);
 
 wl_partition wl_partition_empty();
 bool wl_partition_is_empty(wl_partition* p);
