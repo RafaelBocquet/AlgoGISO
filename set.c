@@ -113,7 +113,7 @@ void splay_zigzag(set_node** p, bool d){
 bool int_set_insert(int_set* s, int value){
   assert(s != NULL);
   bool rt;
-  bool insert_(set_node** p, set_node** s, bool d, int value){
+  bool insert_(set_node** p, set_node** s, bool d){
     if(*s == NULL){
       rt = true;
       *s = make_set_node(value, NULL, NULL);
@@ -123,7 +123,7 @@ bool int_set_insert(int_set* s, int value){
       return true;
     }else{
       bool d_ = (value >= (*s)->value);
-      if(insert_(s, d_?&(*s)->r:&(*s)->l, d_, value)){
+      if(insert_(s, d_?&(*s)->r:&(*s)->l, d_)){
         if(p == NULL){
           splay_zig(s, d_);
         }else if(d == d_){
@@ -137,7 +137,7 @@ bool int_set_insert(int_set* s, int value){
       }
     }
   }
-  insert_(NULL, s, false, value);
+  insert_(NULL, s, false);
   return rt;
 }
 

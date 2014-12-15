@@ -60,7 +60,7 @@ wl_partition wl_partition_copy(wl_partition* p){
   wl_partition q;
   q.partition = int_array_pair_array_copy(&p->partition);
   TWICE(i){
-    q.elements[i] = int_array_copy(&p->elements[i]);
+    q.elements[i]      = int_array_copy(&p->elements[i]);
     q.elements_hash[i] = int_array_copy(&p->elements_hash[i]);
   }
   q.update_queue = int_set_copy(&p->update_queue);
